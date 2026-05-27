@@ -1,0 +1,746 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>⚽ Football Quiz</title>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Outfit:wght@300;400;600;700&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --grass: #1a5c2a;
+    --grass-light: #22752f;
+    --gold: #f5c518;
+    --gold-dark: #c9a010;
+    --white: #f8f9f0;
+    --dark: #0d1b0f;
+    --red: #e63946;
+    --green-correct: #2dc653;
+    --stripe: rgba(255,255,255,0.03);
+  }
+
+  body {
+    background-color: var(--dark);
+    font-family: 'Outfit', sans-serif;
+    color: var(--white);
+    min-height: 100vh;
+    overflow-x: hidden;
+    position: relative;
+  }
+
+  /* Pitch texture background */
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background:
+      repeating-linear-gradient(
+        180deg,
+        transparent 0px,
+        transparent 48px,
+        rgba(255,255,255,0.025) 48px,
+        rgba(255,255,255,0.025) 96px
+      ),
+      linear-gradient(160deg, #0d1b0f 0%, #1a3320 50%, #0d1b0f 100%);
+    z-index: 0;
+    pointer-events: none;
+  }
+
+  /* Spotlight effect */
+  body::after {
+    content: '';
+    position: fixed;
+    top: -30%;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 80vw;
+    height: 80vh;
+    background: radial-gradient(ellipse at center, rgba(245,197,24,0.07) 0%, transparent 70%);
+    z-index: 0;
+    pointer-events: none;
+  }
+
+  .app {
+    position: relative;
+    z-index: 1;
+    max-width: 760px;
+    margin: 0 auto;
+    padding: 2rem 1.5rem 4rem;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+  }
+
+  /* ── HEADER ── */
+  .header {
+    text-align: center;
+    margin-bottom: 2.5rem;
+    animation: fadeDown 0.6s ease both;
+  }
+
+  .header .badge {
+    display: inline-block;
+    font-family: 'Outfit', sans-serif;
+    font-size: 0.72rem;
+    font-weight: 600;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: var(--gold);
+    border: 1px solid rgba(245,197,24,0.4);
+    padding: 0.35rem 1rem;
+    border-radius: 2px;
+    margin-bottom: 1rem;
+    background: rgba(245,197,24,0.06);
+  }
+
+  .header h1 {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: clamp(3.5rem, 10vw, 6rem);
+    letter-spacing: 0.04em;
+    line-height: 0.9;
+    color: var(--white);
+    text-shadow: 0 0 60px rgba(245,197,24,0.2);
+  }
+
+  .header h1 span { color: var(--gold); }
+
+  .header p {
+    margin-top: 0.75rem;
+    font-size: 1rem;
+    color: rgba(248,249,240,0.55);
+    font-weight: 300;
+  }
+
+  /* ── PROGRESS ── */
+  .progress-bar-wrap {
+    width: 100%;
+    margin-bottom: 2rem;
+    animation: fadeUp 0.5s ease 0.2s both;
+  }
+
+  .progress-meta {
+    display: flex;
+    justify-content: space-between;
+    font-size: 0.78rem;
+    font-weight: 600;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: rgba(248,249,240,0.4);
+    margin-bottom: 0.5rem;
+  }
+
+  .progress-track {
+    width: 100%;
+    height: 4px;
+    background: rgba(255,255,255,0.08);
+    border-radius: 2px;
+    overflow: hidden;
+  }
+
+  .progress-fill {
+    height: 100%;
+    background: linear-gradient(90deg, var(--gold-dark), var(--gold));
+    border-radius: 2px;
+    transition: width 0.5s cubic-bezier(0.4,0,0.2,1);
+    box-shadow: 0 0 8px rgba(245,197,24,0.5);
+  }
+
+  /* ── CARD ── */
+  .card {
+    width: 100%;
+    background: rgba(255,255,255,0.04);
+    border: 1px solid rgba(255,255,255,0.09);
+    border-radius: 16px;
+    padding: 2.5rem;
+    backdrop-filter: blur(12px);
+    animation: fadeUp 0.5s ease 0.1s both;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .card::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 2px;
+    background: linear-gradient(90deg, transparent, var(--gold), transparent);
+    opacity: 0.6;
+  }
+
+  .question-num {
+    font-size: 0.72rem;
+    font-weight: 700;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: var(--gold);
+    margin-bottom: 0.75rem;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+  }
+
+  .question-num::before {
+    content: '';
+    display: inline-block;
+    width: 6px; height: 6px;
+    background: var(--gold);
+    border-radius: 50%;
+    box-shadow: 0 0 6px var(--gold);
+  }
+
+  .question-text {
+    font-size: clamp(1.1rem, 3vw, 1.35rem);
+    font-weight: 600;
+    line-height: 1.45;
+    color: var(--white);
+    margin-bottom: 2rem;
+  }
+
+  /* ── OPTIONS ── */
+  .options {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0.85rem;
+  }
+
+  @media (max-width: 500px) {
+    .options { grid-template-columns: 1fr; }
+    .card { padding: 1.75rem 1.25rem; }
+  }
+
+  .option-btn {
+    position: relative;
+    background: rgba(255,255,255,0.04);
+    border: 1.5px solid rgba(255,255,255,0.1);
+    border-radius: 10px;
+    padding: 1rem 1.2rem;
+    text-align: left;
+    color: var(--white);
+    font-family: 'Outfit', sans-serif;
+    font-size: 0.95rem;
+    font-weight: 400;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    overflow: hidden;
+  }
+
+  .option-btn:hover:not(:disabled) {
+    background: rgba(245,197,24,0.08);
+    border-color: rgba(245,197,24,0.4);
+    transform: translateY(-2px);
+    box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+  }
+
+  .option-btn:active:not(:disabled) { transform: translateY(0); }
+
+  .option-letter {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 28px; height: 28px;
+    min-width: 28px;
+    border-radius: 6px;
+    font-size: 0.75rem;
+    font-weight: 700;
+    background: rgba(255,255,255,0.07);
+    border: 1px solid rgba(255,255,255,0.12);
+    transition: all 0.2s;
+  }
+
+  .option-btn.correct {
+    background: rgba(45,198,83,0.12);
+    border-color: var(--green-correct);
+    animation: pulse-green 0.4s ease;
+  }
+
+  .option-btn.correct .option-letter {
+    background: var(--green-correct);
+    color: var(--dark);
+    border-color: var(--green-correct);
+  }
+
+  .option-btn.wrong {
+    background: rgba(230,57,70,0.12);
+    border-color: var(--red);
+    animation: shake 0.4s ease;
+  }
+
+  .option-btn.wrong .option-letter {
+    background: var(--red);
+    border-color: var(--red);
+  }
+
+  .option-btn:disabled { cursor: not-allowed; opacity: 0.7; }
+
+  /* ── FEEDBACK ── */
+  .feedback {
+    margin-top: 1.5rem;
+    padding: 1rem 1.25rem;
+    border-radius: 8px;
+    font-size: 0.9rem;
+    font-weight: 500;
+    display: none;
+    align-items: flex-start;
+    gap: 0.6rem;
+    line-height: 1.5;
+    animation: fadeUp 0.3s ease;
+  }
+
+  .feedback.show { display: flex; }
+  .feedback.correct-fb { background: rgba(45,198,83,0.1); border: 1px solid rgba(45,198,83,0.3); color: #7ef5a0; }
+  .feedback.wrong-fb { background: rgba(230,57,70,0.1); border: 1px solid rgba(230,57,70,0.3); color: #f7a0a6; }
+
+  .feedback-icon { font-size: 1.1rem; flex-shrink: 0; margin-top: 1px; }
+
+  /* ── NEXT BTN ── */
+  .next-wrap {
+    margin-top: 1.75rem;
+    display: flex;
+    justify-content: flex-end;
+  }
+
+  .next-btn {
+    display: none;
+    background: var(--gold);
+    color: var(--dark);
+    border: none;
+    border-radius: 8px;
+    padding: 0.85rem 2rem;
+    font-family: 'Outfit', sans-serif;
+    font-size: 0.9rem;
+    font-weight: 700;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    cursor: pointer;
+    transition: all 0.2s;
+    animation: fadeUp 0.3s ease;
+    box-shadow: 0 4px 20px rgba(245,197,24,0.25);
+  }
+
+  .next-btn:hover { background: #ffe060; transform: translateY(-2px); box-shadow: 0 6px 24px rgba(245,197,24,0.35); }
+  .next-btn:active { transform: translateY(0); }
+  .next-btn.show { display: inline-flex; align-items: center; gap: 0.4rem; }
+
+  /* ── RESULT SCREEN ── */
+  .result-screen {
+    display: none;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    animation: fadeUp 0.5s ease;
+    width: 100%;
+  }
+
+  .result-screen.show { display: flex; }
+
+  .trophy {
+    font-size: 5rem;
+    margin-bottom: 1rem;
+    filter: drop-shadow(0 0 30px rgba(245,197,24,0.5));
+    animation: bounce 1s ease infinite alternate;
+  }
+
+  .result-title {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: clamp(2.5rem, 8vw, 4.5rem);
+    letter-spacing: 0.05em;
+    color: var(--white);
+    margin-bottom: 0.5rem;
+  }
+
+  .result-score {
+    font-size: 5rem;
+    font-weight: 700;
+    color: var(--gold);
+    line-height: 1;
+    text-shadow: 0 0 40px rgba(245,197,24,0.4);
+    margin: 1rem 0;
+  }
+
+  .result-score span { font-size: 2rem; color: rgba(248,249,240,0.4); }
+
+  .result-msg {
+    font-size: 1rem;
+    font-weight: 300;
+    color: rgba(248,249,240,0.6);
+    margin-bottom: 2.5rem;
+    max-width: 380px;
+  }
+
+  .score-breakdown {
+    display: flex;
+    gap: 2rem;
+    margin-bottom: 2.5rem;
+  }
+
+  .score-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.25rem;
+  }
+
+  .score-item .val {
+    font-size: 1.8rem;
+    font-weight: 700;
+  }
+
+  .score-item .lbl {
+    font-size: 0.72rem;
+    text-transform: uppercase;
+    letter-spacing: 0.15em;
+    color: rgba(248,249,240,0.4);
+  }
+
+  .score-item.green .val { color: var(--green-correct); }
+  .score-item.red .val { color: var(--red); }
+
+  .restart-btn {
+    background: transparent;
+    border: 1.5px solid var(--gold);
+    color: var(--gold);
+    border-radius: 8px;
+    padding: 0.9rem 2.5rem;
+    font-family: 'Outfit', sans-serif;
+    font-size: 0.9rem;
+    font-weight: 700;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+
+  .restart-btn:hover {
+    background: var(--gold);
+    color: var(--dark);
+    transform: translateY(-2px);
+    box-shadow: 0 6px 24px rgba(245,197,24,0.3);
+  }
+
+  /* ── SCREEN TRANSITIONS ── */
+  .quiz-screen { width: 100%; }
+
+  /* ── START SCREEN ── */
+  .start-screen {
+    text-align: center;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    animation: fadeUp 0.5s ease;
+  }
+
+  .ball-icon {
+    font-size: 4rem;
+    margin-bottom: 1rem;
+    display: inline-block;
+    animation: spin-slow 8s linear infinite;
+  }
+
+  .start-desc {
+    font-size: 0.95rem;
+    color: rgba(248,249,240,0.55);
+    max-width: 380px;
+    margin: 1rem auto 2rem;
+    line-height: 1.6;
+    font-weight: 300;
+  }
+
+  .start-btn {
+    background: var(--gold);
+    color: var(--dark);
+    border: none;
+    border-radius: 8px;
+    padding: 1rem 3rem;
+    font-family: 'Outfit', sans-serif;
+    font-size: 1rem;
+    font-weight: 700;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    cursor: pointer;
+    transition: all 0.2s;
+    box-shadow: 0 4px 24px rgba(245,197,24,0.3);
+  }
+
+  .start-btn:hover {
+    background: #ffe060;
+    transform: translateY(-3px);
+    box-shadow: 0 8px 30px rgba(245,197,24,0.4);
+  }
+
+  /* ── ANIMATIONS ── */
+  @keyframes fadeDown {
+    from { opacity: 0; transform: translateY(-20px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  @keyframes fadeUp {
+    from { opacity: 0; transform: translateY(20px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  @keyframes shake {
+    0%, 100% { transform: translateX(0); }
+    25% { transform: translateX(-6px); }
+    75% { transform: translateX(6px); }
+  }
+
+  @keyframes pulse-green {
+    0% { box-shadow: 0 0 0 0 rgba(45,198,83,0.4); }
+    100% { box-shadow: 0 0 0 12px rgba(45,198,83,0); }
+  }
+
+  @keyframes bounce {
+    from { transform: translateY(0); }
+    to { transform: translateY(-12px); }
+  }
+
+  @keyframes spin-slow {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
+  }
+
+  /* Stars on result */
+  .stars { font-size: 2rem; letter-spacing: 0.1em; margin-bottom: 0.5rem; }
+</style>
+</head>
+<body>
+<div class="app">
+
+  <!-- HEADER -->
+  <div class="header">
+    <div class="badge">⚽ Thử thách bóng đá</div>
+    <h1>FOOTBALL<br><span>QUIZ</span></h1>
+    <p>Kiểm tra kiến thức bóng đá của bạn</p>
+  </div>
+
+  <!-- START SCREEN -->
+  <div id="startScreen" class="start-screen">
+    <span class="ball-icon">⚽</span>
+    <div class="start-desc">
+      5 câu hỏi về lịch sử, cầu thủ và các giải đấu bóng đá thế giới. Bạn có đủ tự tin để thử thách?
+    </div>
+    <button class="start-btn" onclick="startQuiz()">Bắt đầu ngay →</button>
+  </div>
+
+  <!-- QUIZ SCREEN -->
+  <div id="quizScreen" class="quiz-screen" style="display:none;">
+    <div class="progress-bar-wrap">
+      <div class="progress-meta">
+        <span id="progressLabel">Câu 1 / 5</span>
+        <span id="scoreLabel">0 điểm</span>
+      </div>
+      <div class="progress-track">
+        <div class="progress-fill" id="progressFill" style="width:0%"></div>
+      </div>
+    </div>
+
+    <div class="card" id="questionCard">
+      <div class="question-num" id="questionNum">Câu hỏi 01</div>
+      <div class="question-text" id="questionText"></div>
+      <div class="options" id="optionsGrid"></div>
+      <div class="feedback" id="feedback">
+        <span class="feedback-icon" id="feedbackIcon"></span>
+        <span id="feedbackText"></span>
+      </div>
+      <div class="next-wrap">
+        <button class="next-btn" id="nextBtn" onclick="nextQuestion()">
+          <span id="nextBtnLabel">Câu tiếp theo</span> →
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- RESULT SCREEN -->
+  <div id="resultScreen" class="result-screen">
+    <div class="trophy" id="trophyIcon">🏆</div>
+    <div class="stars" id="starsEl"></div>
+    <div class="result-title" id="resultTitle">KẾT QUẢ</div>
+    <div class="result-score">
+      <span id="finalScore">0</span><span> / 5</span>
+    </div>
+    <div class="score-breakdown">
+      <div class="score-item green">
+        <div class="val" id="correctCount">0</div>
+        <div class="lbl">Đúng</div>
+      </div>
+      <div class="score-item red">
+        <div class="val" id="wrongCount">0</div>
+        <div class="lbl">Sai</div>
+      </div>
+    </div>
+    <div class="result-msg" id="resultMsg"></div>
+    <button class="restart-btn" onclick="restartQuiz()">↺ Chơi lại</button>
+  </div>
+
+</div>
+
+<script>
+  const questions = [
+    {
+      q: "Cầu thủ nào giữ kỷ lục ghi nhiều bàn thắng nhất trong lịch sử World Cup?",
+      options: ["Pelé", "Ronaldo Nazário", "Miroslav Klose", "Gerd Müller"],
+      answer: 2,
+      explain: "Miroslav Klose (Đức) ghi 16 bàn qua các kỳ World Cup 2002, 2006, 2010 và 2014 — kỷ lục cao nhất mọi thời đại."
+    },
+    {
+      q: "Quốc gia nào đã vô địch World Cup nhiều lần nhất trong lịch sử?",
+      options: ["Đức", "Brazil", "Argentina", "Pháp"],
+      answer: 1,
+      explain: "Brazil là quốc gia thành công nhất với 5 lần vô địch World Cup: 1958, 1962, 1970, 1994 và 2002."
+    },
+    {
+      q: "Giải UEFA Champions League được tổ chức lần đầu tiên vào năm nào?",
+      options: ["1950", "1955", "1960", "1965"],
+      answer: 1,
+      explain: "UEFA Champions League (lúc đó gọi là European Cup) được tổ chức lần đầu vào mùa giải 1955–56, với Real Madrid đoạt cúp."
+    },
+    {
+      q: "Cầu thủ nào được mệnh danh là 'El Pichichi' – danh hiệu vua phá lưới La Liga đặt theo tên người?",
+      options: ["Rafael Moreno Aranzadi", "Alfredo Di Stéfano", "Hugo Sánchez", "Raúl González"],
+      answer: 0,
+      explain: "Rafael Moreno Aranzadi, biệt danh 'Pichichi', là chân sút huyền thoại của Athletic Bilbao. Danh hiệu vua phá lưới La Liga mang tên ông từ năm 1953."
+    },
+    {
+      q: "Trong trận chung kết World Cup 2022, đội nào Argentina đã đánh bại để lên ngôi?",
+      options: ["Brasil", "Pháp", "Croatia", "Hà Lan"],
+      answer: 1,
+      explain: "Argentina đánh bại Pháp trong trận chung kết kịch tính tại Qatar 2022, thắng trên loạt đá luân lưu với tỉ số 4–2 sau khi hòa 3–3 trong 120 phút."
+    }
+  ];
+
+  let current = 0;
+  let score = 0;
+  let answered = false;
+
+  const letters = ['A', 'B', 'C', 'D'];
+
+  function startQuiz() {
+    document.getElementById('startScreen').style.display = 'none';
+    document.getElementById('quizScreen').style.display = 'block';
+    loadQuestion();
+  }
+
+  function loadQuestion() {
+    answered = false;
+    const q = questions[current];
+    const pct = (current / questions.length) * 100;
+
+    document.getElementById('progressLabel').textContent = `Câu ${current + 1} / ${questions.length}`;
+    document.getElementById('scoreLabel').textContent = `${score} điểm`;
+    document.getElementById('progressFill').style.width = pct + '%';
+    document.getElementById('questionNum').textContent = `Câu hỏi ${String(current + 1).padStart(2, '0')}`;
+    document.getElementById('questionText').textContent = q.q;
+
+    const grid = document.getElementById('optionsGrid');
+    grid.innerHTML = '';
+    q.options.forEach((opt, i) => {
+      const btn = document.createElement('button');
+      btn.className = 'option-btn';
+      btn.innerHTML = `<span class="option-letter">${letters[i]}</span>${opt}`;
+      btn.onclick = () => selectAnswer(i);
+      grid.appendChild(btn);
+    });
+
+    const fb = document.getElementById('feedback');
+    fb.className = 'feedback';
+    fb.classList.remove('show', 'correct-fb', 'wrong-fb');
+
+    const nb = document.getElementById('nextBtn');
+    nb.classList.remove('show');
+    document.getElementById('nextBtnLabel').textContent =
+      current < questions.length - 1 ? 'Câu tiếp theo' : 'Xem kết quả';
+
+    // Animate card
+    const card = document.getElementById('questionCard');
+    card.style.animation = 'none';
+    card.offsetHeight;
+    card.style.animation = 'fadeUp 0.4s ease';
+  }
+
+  function selectAnswer(idx) {
+    if (answered) return;
+    answered = true;
+
+    const q = questions[current];
+    const btns = document.querySelectorAll('.option-btn');
+    btns.forEach(b => b.disabled = true);
+
+    const fb = document.getElementById('feedback');
+    const nbtn = document.getElementById('nextBtn');
+
+    if (idx === q.answer) {
+      score++;
+      btns[idx].classList.add('correct');
+      fb.className = 'feedback correct-fb show';
+      document.getElementById('feedbackIcon').textContent = '✅';
+      document.getElementById('feedbackText').textContent = `Chính xác! ${q.explain}`;
+    } else {
+      btns[idx].classList.add('wrong');
+      btns[q.answer].classList.add('correct');
+      fb.className = 'feedback wrong-fb show';
+      document.getElementById('feedbackIcon').textContent = '❌';
+      document.getElementById('feedbackText').textContent = `Chưa đúng. ${q.explain}`;
+    }
+
+    document.getElementById('scoreLabel').textContent = `${score} điểm`;
+    nbtn.classList.add('show');
+  }
+
+  function nextQuestion() {
+    current++;
+    if (current >= questions.length) {
+      showResult();
+    } else {
+      loadQuestion();
+    }
+  }
+
+  function showResult() {
+    document.getElementById('quizScreen').style.display = 'none';
+    const rs = document.getElementById('resultScreen');
+    rs.classList.add('show');
+
+    document.getElementById('finalScore').textContent = score;
+    document.getElementById('correctCount').textContent = score;
+    document.getElementById('wrongCount').textContent = questions.length - score;
+
+    // Stars + message
+    let stars, msg, icon, title;
+    if (score === 5) {
+      stars = '⭐⭐⭐⭐⭐'; icon = '🏆';
+      title = 'XUẤT SẮC!'; msg = 'Bạn thực sự là một tín đồ bóng đá đích thực. Kiến thức của bạn hoàn hảo!';
+    } else if (score >= 4) {
+      stars = '⭐⭐⭐⭐'; icon = '🥇';
+      title = 'RẤT TỐT!'; msg = 'Bạn có hiểu biết sâu về bóng đá. Chỉ thiếu một chút nữa thôi!';
+    } else if (score >= 3) {
+      stars = '⭐⭐⭐'; icon = '🥈';
+      title = 'KHÁ ĐẤY!'; msg = 'Bạn nắm khá tốt kiến thức bóng đá. Hãy thử lại để đạt điểm cao hơn!';
+    } else if (score >= 2) {
+      stars = '⭐⭐'; icon = '🥉';
+      title = 'CẦN CỐ GẮNG'; msg = 'Kiến thức bóng đá của bạn còn khá cơ bản. Theo dõi thêm để cải thiện nhé!';
+    } else {
+      stars = '⭐'; icon = '📚';
+      title = 'HÃY HỌC THÊM'; msg = 'Đừng nản! Hãy theo dõi bóng đá nhiều hơn và thử lại nhé.';
+    }
+
+    document.getElementById('starsEl').textContent = stars;
+    document.getElementById('trophyIcon').textContent = icon;
+    document.getElementById('resultTitle').textContent = title;
+    document.getElementById('resultMsg').textContent = msg;
+  }
+
+  function restartQuiz() {
+    current = 0; score = 0;
+    document.getElementById('resultScreen').classList.remove('show');
+    document.getElementById('quizScreen').style.display = 'block';
+    loadQuestion();
+  }
+</script>
+</body>
+</html>
